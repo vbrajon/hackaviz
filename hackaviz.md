@@ -173,7 +173,7 @@
   `
   root.appendChild(legend)
 
-  root.insertAdjacentHTML("beforeend", `<div class="source">Source : <a href="https://www.ecb.europa.eu/euro/coins/1euro/html/index.en.html">Banque Centrale Européenne</a></div>`)
+  root.insertAdjacentHTML("beforeend", `<div class="source">Source : <a target="_blank" href="https://www.ecb.europa.eu/euro/coins/1euro/html/index.en.html">Banque Centrale Européenne</a></div>`)
 
   return root
 }
@@ -207,9 +207,9 @@
   .hz .track::after { content: ''; position: absolute; top: 0; bottom: 0; left: calc(18px + (100% - 56px) * 0.50); width: 1px; background: #e4e5ec; pointer-events: none; }
   .hz .grid-75 { position: absolute; top: 0; bottom: 0; left: calc(18px + (100% - 56px) * 0.75); width: 1px; background: #ecedf2; pointer-events: none; }
   .hz .grid-100 { position: absolute; top: 0; bottom: 0; left: calc(18px + (100% - 36px)); width: 1px; background: #ecedf2; pointer-events: none; }
-  .hz .rank { width: 40px; min-width: 40px; font-size: 20px; font-weight: 600; text-align: center; color: #7a7a8e; opacity: 0; transition: opacity 0.15s; display: flex; align-items: center; justify-content: center; }
+  .hz .rank { width: 28px; min-width: 28px; font-size: 20px; font-weight: 600; text-align: center; color: #7a7a8e; opacity: 0; transition: opacity 0.15s; display: flex; align-items: center; justify-content: center; padding: 0; }
   .hz .chart.has-highlight .rank { opacity: 1; }
-  .hz .value { width: 110px; min-width: 110px; font-size: 11px; color: #3a3a4e; opacity: 0; transition: opacity 0.15s; white-space: nowrap; display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding-right: 8px; }
+  .hz .value { width: 100px; min-width: 100px; font-size: 11px; color: #3a3a4e; opacity: 0; transition: opacity 0.15s; white-space: nowrap; display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding-right: 8px; }
   .hz .value .num { min-width: 50px; text-align: right; font-variant-numeric: tabular-nums; }
   .hz .value .unit { min-width: 30px; text-align: left; color: #999; }
   .hz .chart.has-highlight .value { opacity: 1; }
@@ -217,7 +217,7 @@
   .hz .sparkline { width: 80px; min-width: 80px; height: 50px; display: flex; align-items: center; justify-content: center; border-left: 1px solid #e8e8ee; padding: 8px 6px; }
   .hz .dot { position: absolute; width: 30px; height: 20px; border-radius: 3px; transform: translate(-50%, -50%); top: 50%; font-size: 17px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s; border: 1.5px solid rgba(0,0,0,0.08); background: #fff; z-index: 3; user-select: none; overflow: hidden; }
   .hz .dot img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-  .hz .dot.fallback { filter: grayscale(0.6); border-style: dashed; }
+  .hz .dot.fallback { border-style: dashed; }
   .hz .dot:hover, .hz .dot.highlight { transform: translate(-50%, -50%) scale(1.25); box-shadow: 0 3px 12px rgba(0,0,0,0.18); z-index: 10; opacity: 1 !important; filter: none; }
   .hz .chart-header { display: flex; align-items: center; height: 38px; background: #f4f5f9; border-bottom: 1px solid #e8e8ee; }
   .hz .chart-header:hover { background: #f4f5f9; }
@@ -409,7 +409,7 @@
         const barH = Math.max(2, Math.abs(d) / maxD * (mid - 3))
         const color = d >= 0 ? "#22a06b" : "#cf3b3b"
         const y = d >= 0 ? mid - barH : mid
-        svg += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="1" fill="${color}" opacity="0.85"/>`
+        svg += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="1" fill="${color}"/>`
       }
     })
     svg += `</svg>`
