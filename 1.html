@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Année d'arrivée dans la zone Euro</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: #fff; }
+  #chart { width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+
+<div id="chart"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script>
+const euroData = [
+  { name: "Austria",      nameFr: "Autriche",     year: 1999, code: "at", coord: [13.33, 47.33] },
+  { name: "Belgium",      nameFr: "Belgique",     year: 1999, code: "be", coord: [4.35, 50.85] },
+  { name: "Bulgaria",     nameFr: "Bulgarie",     year: 2026, code: "bg", coord: [25.49, 42.70] },
+  { name: "Germany",      nameFr: "Allemagne",    year: 1999, code: "de", coord: [10.45, 51.17] },
+  { name: "Spain",        nameFr: "Espagne",      year: 1999, code: "es", coord: [-3.75, 40.43] },
+  { name: "Estonia",      nameFr: "Estonie",      year: 2011, code: "ee", coord: [24.75, 58.60] },
+  { name: "Finland",      nameFr: "Finlande",     year: 1999, code: "fi", coord: [25.75, 61.92] },
+  { name: "France",       nameFr: "France",       year: 1999, code: "fr", coord: [2.21, 46.23] },
+  { name: "Greece",       nameFr: "Grèce",        year: 2001, code: "gr", coord: [21.82, 39.07] },
+  { name: "Croatia",      nameFr: "Croatie",      year: 2023, code: "hr", coord: [15.98, 45.10] },
+  { name: "Ireland",      nameFr: "Irlande",      year: 1999, code: "ie", coord: [-8.24, 53.41] },
+  { name: "Italy",        nameFr: "Italie",       year: 1999, code: "it", coord: [12.57, 41.87] },
+  { name: "Lithuania",    nameFr: "Lituanie",     year: 2015, code: "lt", coord: [23.88, 55.17] },
+  { name: "Luxembourg",   nameFr: "Luxembourg",   year: 1999, code: "lu", coord: [6.13, 49.82] },
+  { name: "Latvia",       nameFr: "Lettonie",     year: 2014, code: "lv", coord: [24.60, 56.88] },
+  { name: "Netherlands",  nameFr: "Pays-Bas",     year: 1999, code: "nl", coord: [5.29, 52.13] },
+  { name: "Portugal",     nameFr: "Portugal",     year: 1999, code: "pt", coord: [-8.22, 39.40] },
+  { name: "Slovakia",     nameFr: "Rép. slovaque", year: 2009, code: "sk", coord: [19.70, 48.67] },
+  { name: "Slovenia",     nameFr: "Slovénie",     year: 2007, code: "si", coord: [14.80, 46.12] },
+];
+
+const yearColors = {
+  1999: "#1a3a5c",
+  2001: "#1e4d7b",
+  2007: "#3a7cb8",
+  2009: "#5a9bd5",
+  2011: "#7bb8e0",
+  2014: "#9dd0eb",
+  2015: "#aedcb0",
+  2023: "#c8e6c0",
+  2026: "#e8f5d0",
+};
+
+const chart = echarts.init(document.getElementById("chart"));
+
+// Load world GeoJSON and register as ECharts map
+fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json")
+  .then(r => r.json())
+  .then(topojsonData => {
+    // Convert topojson to geojson
+    const geojson = topojsonToGeojson(topojsonData);
+
+    // Filter to Europe
+    const europeFeatures = geojson.features.filter(f => {
+      const c = centroid(f);
+      return c && c[0] > -12 && c[0] < 40 && c[1] > 34 && c[1] < 72;
+    });
+
+    // Build name→year lookup from English names in GeoJSON
+    const nameToInfo = {};
+    euroData.forEach(d => { nameToInfo[d.name] = d; });
+
+    const europeGeo = { type: "FeatureCollection", features: europeFeatures };
+    echarts.registerMap("europe", europeGeo);
+
+    // Map data for choropleth coloring
+    const mapData = europeFeatures.map(f => {
+      const info = nameToInfo[f.properties.name];
+      return {
+        name: f.properties.name,
+        value: info ? info.year : 0,
+        itemStyle: info ? { areaColor: yearColors[info.year], borderColor: "#fff" } : { areaColor: "#e8e8e8", borderColor: "#fff" },
+      };
+    });
+
+    // Scatter data for round markers with coin images
+    const scatterData = euroData.map(d => ({
+      name: d.nameFr,
+      value: [...d.coord, d.year],
+      symbol: `image://IMG/Pieces/${d.code}.png`,
+      symbolSize: 30,
+      itemStyle: { color: yearColors[d.year], borderColor: "#fff", borderWidth: 2 },
+    }));
+
+    // Legend pieces
+    const years = [1999, 2001, 2007, 2009, 2011, 2014, 2015, 2023, 2026];
+
+    const option = {
+      title: {
+        text: "Année d'arrivée dans la zone Euro",
+        subtext: "bla bla bla ....",
+        left: 16,
+        top: 10,
+        textStyle: { fontSize: 22, fontWeight: "bold" },
+        subtextStyle: { fontSize: 13, color: "#888" },
+      },
+      tooltip: {
+        trigger: "item",
+        formatter: params => {
+          if (params.seriesType === "scatter") {
+            return `<b>${params.name}</b><br/>Année: ${params.value[2]}`;
+          }
+          const info = nameToInfo[params.name];
+          if (info) return `<b>${info.nameFr}</b><br/>Année: ${info.year}`;
+          return params.name;
+        },
+      },
+      visualMap: {
+        type: "piecewise",
+        pieces: years.map(y => ({ value: y, label: String(y), color: yearColors[y] })),
+        left: 16,
+        top: 80,
+        orient: "vertical",
+        textStyle: { fontSize: 12 },
+        seriesIndex: 0,
+      },
+      geo: {
+        map: "europe",
+        roam: true,
+        center: [15, 52],
+        zoom: 1,
+        label: { show: false },
+        itemStyle: { areaColor: "#e8e8e8", borderColor: "#fff", borderWidth: 0.5 },
+        emphasis: {
+          itemStyle: { areaColor: undefined },
+          label: { show: false },
+        },
+        regions: europeFeatures.map(f => {
+          const info = nameToInfo[f.properties.name];
+          if (!info) return { name: f.properties.name };
+          return {
+            name: f.properties.name,
+            itemStyle: { areaColor: yearColors[info.year] },
+            emphasis: { itemStyle: { areaColor: yearColors[info.year], opacity: 0.85 } },
+          };
+        }),
+      },
+      series: [
+        {
+          name: "Choropleth",
+          type: "map",
+          map: "europe",
+          geoIndex: 0,
+          data: mapData,
+          selectedMode: false,
+        },
+        {
+          name: "Pays",
+          type: "scatter",
+          coordinateSystem: "geo",
+          geoIndex: 0,
+          data: scatterData,
+          label: {
+            show: true,
+            formatter: "{b}",
+            position: "right",
+            fontSize: 11,
+            fontWeight: "bold",
+            color: "#333",
+            textBorderColor: "#fff",
+            textBorderWidth: 2,
+          },
+          emphasis: {
+            scale: 1.4,
+            label: { fontSize: 13 },
+          },
+          zlevel: 2,
+        },
+      ],
+    };
+
+    chart.setOption(option);
+    window.addEventListener("resize", () => chart.resize());
+  });
+
+// Minimal topojson → geojson converter
+function topojsonToGeojson(topo) {
+  const key = Object.keys(topo.objects)[0];
+  const obj = topo.objects[key];
+  const arcs = topo.arcs;
+  const transform = topo.transform;
+
+  function decodeArc(arc) {
+    let x = 0, y = 0;
+    return arc.map(p => {
+      x += p[0]; y += p[1];
+      return transform
+        ? [x * transform.scale[0] + transform.translate[0], y * transform.scale[1] + transform.translate[1]]
+        : [x, y];
+    });
+  }
+
+  const decodedArcs = arcs.map(decodeArc);
+
+  function resolveArcs(indices) {
+    return indices.map(idx => {
+      if (idx < 0) return [...decodedArcs[~idx]].reverse();
+      return decodedArcs[idx];
+    });
+  }
+
+  function buildRing(arcs) {
+    const coords = [];
+    arcs.forEach(arc => {
+      arc.forEach((p, i) => { if (i > 0 || coords.length === 0) coords.push(p); });
+    });
+    return coords;
+  }
+
+  function toGeometry(geom) {
+    if (geom.type === "Polygon") {
+      return {
+        type: "Polygon",
+        coordinates: geom.arcs.map(ring => buildRing(resolveArcs(ring))),
+      };
+    }
+    if (geom.type === "MultiPolygon") {
+      return {
+        type: "MultiPolygon",
+        coordinates: geom.arcs.map(polygon =>
+          polygon.map(ring => buildRing(resolveArcs(ring)))
+        ),
+      };
+    }
+    return geom;
+  }
+
+  const features = (obj.geometries || []).map(g => ({
+    type: "Feature",
+    properties: g.properties || {},
+    geometry: toGeometry(g),
+    id: g.id,
+  }));
+
+  return { type: "FeatureCollection", features };
+}
+
+// Compute centroid of a feature
+function centroid(feature) {
+  const coords = [];
+  function collect(c, depth) {
+    if (depth === 0) coords.push(c);
+    else c.forEach(x => collect(x, depth - 1));
+  }
+  const g = feature.geometry;
+  if (!g) return null;
+  if (g.type === "Polygon") collect(g.coordinates, 2);
+  else if (g.type === "MultiPolygon") collect(g.coordinates, 3);
+  else return null;
+  if (!coords.length) return null;
+  const sx = coords.reduce((a, c) => a + c[0], 0);
+  const sy = coords.reduce((a, c) => a + c[1], 0);
+  return [sx / coords.length, sy / coords.length];
+}
+</script>
+
+</body>
+</html>
