@@ -1,0 +1,8 @@
+{
+  "name": "hackaviz-panorama",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@observablehq/framework": "^1"
+  }
+}
