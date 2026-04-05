@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hackaviz – Zone Euro</title>
+  <style>
+    body { margin: 0; padding: 20px 40px; background: #f9f9fb; font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .cell { margin: 0 auto 40px; max-width: 960px; }
+    h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 4px; color: #1a1a2e; }
+    h2 { font-size: 14px; font-weight: 400; color: #7a7a8e; margin: 0 0 20px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/+esm" type="module"></script>
+  <script type="module">
+    import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm"
+    window.d3 = d3
+
+    // Shim FileAttachment for local use
+    function FileAttachment(name) {
+      return {
+        text: () => fetch(name).then(r => r.text()),
+        json: () => fetch(name).then(r => r.json()),
+      }
+    }
+
+    // Parse hackaviz.md — extract ```js fenced blocks with preceding # / ## headings
+    const src = await fetch("hackaviz.md").then(r => r.text())
+    const cells = []
+    let current = null, inCode = false
+    for (const line of src.split("\n")) {
+      if (line.startsWith("```js") && !inCode) {
+        if (!current) current = { h1: "", h2: "", code: "" }
+        inCode = true
+      } else if (line.startsWith("```") && inCode) {
+        inCode = false
+        if (current) { cells.push(current); current = null }
+      } else if (inCode) {
+        current.code += line + "\n"
+      } else if (line.startsWith("# ") && !line.startsWith("##")) {
+        current = { h1: line.slice(2), h2: "", code: "" }
+      } else if (line.startsWith("## ") && current) {
+        current.h2 = line.slice(3)
+      }
+    }
+
+    const root = document.getElementById("root")
+    for (const cell of cells) {
+      const section = document.createElement("div")
+      section.className = "cell"
+      if (cell.h1) section.insertAdjacentHTML("beforeend", `<h1>${cell.h1}</h1>`)
+      if (cell.h2) section.insertAdjacentHTML("beforeend", `<h2>${cell.h2}</h2>`)
+      root.appendChild(section)
+
+      try {
+        const fn = new Function("d3", "FileAttachment", `return (async () => { ${cell.code} })()`)
+        const result = await fn(d3, FileAttachment)
+        if (result instanceof Node) section.appendChild(result)
+      } catch (e) {
+        section.insertAdjacentHTML("beforeend", `<pre style="color:red">${e.message}\n${e.stack}</pre>`)
+      }
+    }
+  </script>
+</body>
+</html>

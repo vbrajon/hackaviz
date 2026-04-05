@@ -1,5 +1,7 @@
-// # Pays de la Zone Euro
-// ## Date d'entrée dans la zone et PIB par habitant
+# Pays de la Zone Euro
+## Date d'entrée dans la zone et PIB par habitant
+
+```js
 {
   const topojson = await import("https://cdn.jsdelivr.net/npm/topojson-client@3/+esm")
 
@@ -157,7 +159,7 @@
 
   const legend = document.createElement("div")
   legend.className = "legend"
-  const years = coinData.map(d => d.year)
+  const years = allCoinData.map(d => d.year)
   const minY = Math.min(...years), maxY = Math.max(...years)
   const gradStops = d3.range(0, 1.01, 0.1).map(t => {
     const y = minY + t * (maxY - minY)
@@ -175,9 +177,13 @@
 
   return root
 }
+```
 
-// # Panorama de la Zone Euro
-// ## 16 indicateurs normalisés comparant éducation, finances publiques et démographie — survolez un drapeau pour les détails
+# Panorama de la Zone Euro
+## 16 indicateurs normalisés comparant éducation, finances publiques et démographie — survolez un drapeau pour les détails
+<style>h2 { font-style: italic;font-weight: normal;font-size: 20px; }</style>
+
+```js
 {
   const css = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -196,25 +202,28 @@
   .hz .category-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #7a7a8e; padding-left: 20px; line-height: 28px; }
   .hz .label { width: 210px; min-width: 210px; font-size: 13px; font-weight: 500; text-align: right; padding-right: 20px; color: #3a3a4e; white-space: nowrap; }
   .hz .track { flex: 1; position: relative; height: 50px; border-left: 1px solid #e8e8ee; padding: 0 18px; }
-  .hz .track-inner { position: relative; width: 100%; height: 100%; }
-  .hz .track::before { content: ''; position: absolute; top: 0; bottom: 0; left: calc(18px + (100% - 36px) * 0.25); width: 1px; background: #ecedf2; pointer-events: none; }
-  .hz .track::after { content: ''; position: absolute; top: 0; bottom: 0; left: calc(18px + (100% - 36px) * 0.50); width: 1px; background: #e4e5ec; pointer-events: none; }
-  .hz .grid-75 { position: absolute; top: 0; bottom: 0; left: calc(18px + (100% - 36px) * 0.75); width: 1px; background: #ecedf2; pointer-events: none; }
+  .hz .track-inner { position: relative; width: calc(100% - 20px); height: 100%; }
+  .hz .track::before { content: ''; position: absolute; top: 0; bottom: 0; left: calc(18px + (100% - 56px) * 0.25); width: 1px; background: #ecedf2; pointer-events: none; }
+  .hz .track::after { content: ''; position: absolute; top: 0; bottom: 0; left: calc(18px + (100% - 56px) * 0.50); width: 1px; background: #e4e5ec; pointer-events: none; }
+  .hz .grid-75 { position: absolute; top: 0; bottom: 0; left: calc(18px + (100% - 56px) * 0.75); width: 1px; background: #ecedf2; pointer-events: none; }
   .hz .grid-100 { position: absolute; top: 0; bottom: 0; left: calc(18px + (100% - 36px)); width: 1px; background: #ecedf2; pointer-events: none; }
-  .hz .rank { width: 40px; min-width: 40px; font-size: 20px; font-weight: 600; text-align: center; color: #7a7a8e; opacity: 0; transition: opacity 0.15s; border-left: 1px solid #e8e8ee; line-height: 1; }
+  .hz .rank { width: 40px; min-width: 40px; font-size: 20px; font-weight: 600; text-align: center; color: #7a7a8e; opacity: 0; transition: opacity 0.15s; display: flex; align-items: center; justify-content: center; }
   .hz .chart.has-highlight .rank { opacity: 1; }
-  .hz .value { width: 80px; min-width: 80px; font-size: 11px; text-align: center; color: #3a3a4e; opacity: 0; transition: opacity 0.15s; border-left: 1px solid #e8e8ee; white-space: nowrap; }
+  .hz .value { width: 110px; min-width: 110px; font-size: 11px; color: #3a3a4e; opacity: 0; transition: opacity 0.15s; white-space: nowrap; display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding-right: 8px; }
+  .hz .value .num { min-width: 50px; text-align: right; font-variant-numeric: tabular-nums; }
+  .hz .value .unit { min-width: 30px; text-align: left; color: #999; }
   .hz .chart.has-highlight .value { opacity: 1; }
   .hz .chart-header .value { opacity: 1; font-weight: 600; color: #aaa; border-left: none; }
   .hz .sparkline { width: 80px; min-width: 80px; height: 50px; display: flex; align-items: center; justify-content: center; border-left: 1px solid #e8e8ee; padding: 8px 6px; }
   .hz .dot { position: absolute; width: 30px; height: 20px; border-radius: 3px; transform: translate(-50%, -50%); top: 50%; font-size: 17px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s; border: 1.5px solid rgba(0,0,0,0.08); background: #fff; z-index: 3; user-select: none; overflow: hidden; }
   .hz .dot img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-  .hz .dot:hover, .hz .dot.highlight { transform: translate(-50%, -50%) scale(1.25); box-shadow: 0 3px 12px rgba(0,0,0,0.18); z-index: 10; opacity: 1 !important; }
+  .hz .dot.fallback { filter: grayscale(0.6); border-style: dashed; }
+  .hz .dot:hover, .hz .dot.highlight { transform: translate(-50%, -50%) scale(1.25); box-shadow: 0 3px 12px rgba(0,0,0,0.18); z-index: 10; opacity: 1 !important; filter: none; }
   .hz .chart-header { display: flex; align-items: center; height: 38px; background: #f4f5f9; border-bottom: 1px solid #e8e8ee; }
   .hz .chart-header:hover { background: #f4f5f9; }
   .hz .chart-header .label { width: 210px; min-width: 210px; }
   .hz .chart-header .spacer { flex: 1; border-left: 1px solid #e8e8ee; }
-  .hz .chart-header .rank { opacity: 1; border: none; font-size: 11px; color: #aaa; line-height: normal; }
+  .hz .chart-header .rank { opacity: 1; border: none; font-size: 11px; color: #aaa; line-height: normal; display: flex; align-items: center; justify-content: center; }
   .hz .chart-header-info { display: flex; align-items: center; border-left: 1px solid #e8e8ee; }
   .hz .chart-header-info .col-label { width: 80px; min-width: 80px; text-align: center; font-size: 12px; font-weight: 600; color: #3a3a4e; white-space: nowrap; padding: 0 6px; border-left: 1px solid #e8e8ee; }
   .hz .chart-header-info .col-label:first-child { border-left: none; }
@@ -240,64 +249,122 @@
     { code: "NLD", cc: "nl", name: "Pays-Bas" },
     { code: "PRT", cc: "pt", name: "Portugal" },
     { code: "SVK", cc: "sk", name: "Rép. Slovaque" },
+    { code: "EU", cc: "eu", name: "Moy. UE" },
   ]
 
   const colors = {
     AUT: "#d44", BEL: "#222", DEU: "#e8a", ESP: "#f80", EST: "#48c", FIN: "#69c",
     FRA: "#44b", GRC: "#6b6", IRL: "#3a3", ITA: "#c44", LTU: "#b93", LUX: "#59c",
-    LVA: "#933", NLD: "#e60", PRT: "#494", SVK: "#b4b",
+    LVA: "#933", NLD: "#e60", PRT: "#494", SVK: "#b4b", EU: "#039",
   }
 
   function parseCSV(text) {
     const lines = text.trim().split("\n").map(l => l.split(","))
     if (lines.length < 2) return null
-    const countryCodes = lines[0].slice(4)
-    const raw = {}, labels = [], categories = {}, units = {}
+    const countryCodes = lines[0].slice(4, -1) // exclude last "Inverse" header
+    const raw = {}, labels = [], categories = {}, units = {}, inverse = {}
     for (let i = 1; i < lines.length; i++) {
       const year = parseInt(lines[i][0])
       const cat = (lines[i][1] || "").trim()
       const label = (lines[i][2] || "").trim()
       const unit = (lines[i][3] || "").trim()
+      const inv = (lines[i][lines[i].length - 1] || "").trim() === "1"
       if (!label || isNaN(year)) continue
-      const values = lines[i].slice(4).map(v => { const n = parseFloat(v); return isNaN(n) ? null : n })
-      if (!raw[label]) { raw[label] = {}; labels.push(label); categories[label] = cat; units[label] = unit }
+      const values = lines[i].slice(4, -1).map(v => { const n = parseFloat(v); return isNaN(n) ? null : n })
+      if (!raw[label]) { raw[label] = {}; labels.push(label); categories[label] = cat; units[label] = unit; inverse[label] = inv }
       raw[label][year] = values
+    }
+    // Compute EU average and append as last column
+    for (const label of labels) {
+      for (const [year, values] of Object.entries(raw[label])) {
+        const nonNull = values.filter(v => v != null)
+        raw[label][year] = [...values, nonNull.length ? nonNull.reduce((a, b) => a + b, 0) / nonNull.length : null]
+      }
     }
     const dataMap = {}
     for (const label of labels) {
       const all = Object.values(raw[label]).flat().filter(v => v != null)
       const min = Math.min(...all), max = Math.max(...all)
       const range = max - min || 1
+      const inv = inverse[label]
       dataMap[label] = {}
       for (const [year, values] of Object.entries(raw[label])) {
-        dataMap[label][year] = values.map(v => v == null ? null : +((v - min) / range).toFixed(3))
+        dataMap[label][year] = values.map(v => v == null ? null : inv ? +(1 - (v - min) / range).toFixed(3) : +((v - min) / range).toFixed(3))
       }
     }
-    return { countryCodes, dataMap, rawMap: raw, labels, categories, units }
+    return { countryCodes, dataMap, rawMap: raw, labels, categories, units, inverse }
   }
 
   const csvText = await FileAttachment("data.csv").text()
   const data = parseCSV(csvText)
-  const { dataMap, labels, categories, units, rawMap } = data
+  const { dataMap, labels, categories, units, rawMap, inverse } = data
+
+  // Global year range for consistent sparklines
+  const allYears = [...new Set(labels.flatMap(l => Object.keys(rawMap[l]).map(Number)))].sort((a, b) => a - b)
 
   function getLatestValues(label) {
     const entry = dataMap[label]
     if (!entry) return []
     const years = Object.keys(entry).map(Number).sort()
-    return years.length ? entry[years[years.length - 1]] : []
+    if (!years.length) return []
+    const last = entry[years[years.length - 1]]
+    return last.map((v, ci) => {
+      if (v != null) return v
+      for (let yi = years.length - 2; yi >= 0; yi--) {
+        const prev = entry[years[yi]][ci]
+        if (prev != null) return prev
+      }
+      return null
+    })
+  }
+
+  function getLatestFallbackFlags(label) {
+    const entry = dataMap[label]
+    if (!entry) return []
+    const years = Object.keys(entry).map(Number).sort()
+    if (!years.length) return []
+    const last = entry[years[years.length - 1]]
+    return last.map((v, ci) => v == null)
   }
 
   function getRawLatestValues(label) {
     const entry = rawMap[label]
     if (!entry) return []
     const years = Object.keys(entry).map(Number).sort()
-    return years.length ? entry[years[years.length - 1]] : []
+    if (!years.length) return []
+    const last = entry[years[years.length - 1]]
+    return last.map((v, ci) => {
+      if (v != null) return v
+      for (let yi = years.length - 2; yi >= 0; yi--) {
+        const prev = entry[years[yi]][ci]
+        if (prev != null) return prev
+      }
+      return null
+    })
+  }
+
+  function formatValue(v, unit) {
+    if (v == null) return "–"
+    if ((unit === "%" || unit === "% PIB") && Math.abs(v) < 1) v = v * 100
+    const abs = Math.abs(v)
+    let str
+    if (abs >= 10000) str = Math.round(v).toLocaleString("fr-FR")
+    else if (abs >= 100) str = v.toFixed(1)
+    else if (abs >= 1) str = v.toFixed(1)
+    else if (abs >= 0.01) str = v.toFixed(2)
+    else if (abs > 0) {
+      const e = v.toExponential(1)
+      const [coef, exp] = e.split('e')
+      str = `${coef}×10<sup>${exp.replace('+', '')}</sup>`
+    }
+    else str = "0"
+    return `<span class="num">${str}</span><span class="unit">${unit}</span>`
   }
 
   function getYearSeries(label, ci) {
     const entry = dataMap[label]
-    if (!entry) return []
-    return Object.keys(entry).map(Number).sort().map(y => ({ year: y, value: entry[y][ci] ?? null }))
+    if (!entry) return allYears.map(y => ({ year: y, value: null }))
+    return allYears.map(y => ({ year: y, value: entry[y]?.[ci] ?? null }))
   }
 
   // === Viz helpers ===
@@ -380,9 +447,11 @@
       lastCat = cat
     }
     const values = getLatestValues(label)
+    const fallbackFlags = getLatestFallbackFlags(label)
     const row = document.createElement("div")
     row.className = "row"
-    row.innerHTML = `<div class="label">${label}</div><div class="track"><div class="track-inner"></div><div class="grid-75"></div><div class="grid-100"></div></div><div class="rank" data-row="${ri}"></div><div class="value" data-row="${ri}"></div><div class="sparkline" data-row="${ri}"></div>`
+    const inv = inverse[label] ? ' <span style="color:#cf3b3b;font-size:10px" title="Inversé : moins = mieux">◄</span>' : ''
+    row.innerHTML = `<div class="label">${label}${inv}</div><div class="track"><div class="track-inner"></div><div class="grid-75"></div><div class="grid-100"></div></div><div class="rank" data-row="${ri}"></div><div class="value" data-row="${ri}"></div><div class="sparkline" data-row="${ri}"></div>`
     chart.appendChild(row)
 
     const trackInner = row.querySelector(".track-inner")
@@ -391,8 +460,9 @@
       const c = countries[ci]
       if (!c) return
       const series = getYearSeries(label, ci)
+      const isFallback = fallbackFlags[ci]
       const dot = document.createElement("div")
-      dot.className = `dot trend-${trendDir(series)}`
+      dot.className = `dot trend-${trendDir(series)}${isFallback ? ' fallback' : ''}`
       dot.dataset.code = c.code
       dot.style.left = (v * 100) + "%"
       dot.innerHTML = `<img src="https://flagcdn.com/w40/${c.cc}.png" alt="${c.name}">`
@@ -416,6 +486,7 @@
     _linesSvg.setAttribute("width", r.width)
     _linesSvg.setAttribute("height", r.height)
     countries.forEach(c => {
+      if (c.code === "EU") return
       const cd = _dots.filter(d => d.code === c.code).sort((a, b) => a.row - b.row)
       if (cd.length < 2) return
       for (let i = 0; i < cd.length - 1; i++) {
@@ -440,7 +511,7 @@
 
   function setHighlight(code) {
     highlightedCountry = code
-    chart.classList.toggle("has-highlight", !!code)
+    chart.classList.add("has-highlight")
     _dots.forEach(d => {
       d.el.classList.toggle("highlight", code === d.code)
       d.el.style.opacity = code && code !== d.code ? "0.2" : "1"
@@ -456,40 +527,33 @@
       l.setAttribute("opacity", code === l.dataset.code ? "0.7" : code ? "0.03" : "0.12")
       l.setAttribute("stroke-width", code === l.dataset.code ? "2" : "1")
     })
+    const activeCode = code || "EU"
+    const activeCi = countries.findIndex(c => c.code === activeCode)
     const medals = ['🥇', '🥈', '🥉']
     chart.querySelectorAll(".rank[data-row]").forEach(el => {
       const ri = +el.dataset.row
-      if (!code) { el.textContent = ""; return }
-      const ci = countries.findIndex(c => c.code === code)
       const values = getLatestValues(labels[ri])
       const sorted = values.map((v, i) => ({ v, i })).filter(s => s.v != null).sort((a, b) => b.v - a.v)
-      const rank = sorted.findIndex(s => s.i === ci) + 1
+      const rank = sorted.findIndex(s => s.i === activeCi) + 1
       el.innerHTML = rank > 0 ? (rank <= 3 ? medals[rank - 1] : `<span style="font-size:11px">${rank}<sup>e</sup></span>`) : "–"
     })
     chart.querySelectorAll(".value[data-row]").forEach(el => {
       const ri = +el.dataset.row
-      if (!code) { el.textContent = ""; return }
-      const ci = countries.findIndex(c => c.code === code)
       const raw = getRawLatestValues(labels[ri])
-      const v = raw[ci]
-      el.textContent = v != null ? `${v} ${units[labels[ri]]}` : "–"
+      const v = raw[activeCi]
+      el.innerHTML = formatValue(v, units[labels[ri]])
     })
     chart.querySelectorAll(".sparkline[data-row]").forEach(el => {
       const ri = +el.dataset.row
-      if (!code) { el.innerHTML = ""; return }
-      const ci = countries.findIndex(c => c.code === code)
-      el.innerHTML = waterfallSVG(getYearSeries(labels[ri], ci))
+      el.innerHTML = waterfallSVG(getYearSeries(labels[ri], activeCi))
     })
     const info = chart.querySelector(".chart-header-info")
     if (!info) return
-    if (!code) {
-      info.innerHTML = `<div class="col-label muted"></div>`
-    } else {
-      const c = countries.find(c => c.code === code)
-      info.innerHTML = `<div class="col-label">${c.name}</div>`
-    }
+    const activeC = countries.find(c => c.code === activeCode)
+    info.innerHTML = `<div class="col-label${!code ? ' muted' : ''}">${activeC.name}</div>`
   }
 
+  setHighlight(null)
   scheduleDrawLines()
   chart.querySelectorAll(".dot img").forEach(img => img.addEventListener("load", scheduleDrawLines, { once: true }))
   window.addEventListener("resize", drawLines)
@@ -498,3 +562,4 @@
 
   return root
 }
+```
