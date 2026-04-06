@@ -10,12 +10,22 @@
       --sans-serif: "Inter", -apple-system, BlinkMacSystemFont, "avenir next", avenir, helvetica, "helvetica neue", ubuntu, roboto, noto, "segoe ui", arial, sans-serif;
       --monospace: "Spline Sans Mono", Menlo, Consolas, monospace;
     }
-    body { margin: 0; padding: 20px 40px; background: #f9f9fb; font-family: var(--sans-serif); }
+    body { margin: 0; padding: 20px 40px; background: #f9f9fb; font-family: var(--serif); }
     .cell { margin: 0 auto 40px; }
+    .cell:first-of-type h1 { font-size: 42px; margin: auto; margin-bottom: 4px; }
     h1 { font-size: 28px; font-family: var(--serif); font-weight: 800; letter-spacing: -0.5px; margin: 0 0 4px; color: #1a1a2e; max-width: 640px; 
     text-wrap-style: balance; }
     h2 { font-size: 20px; font-family: var(--serif); font-weight: 400; font-style: italic; color: #7a7a8e; margin: 0 0 20px; max-width: 640px; 
     text-wrap-style: balance; }
+    .cell .prose { max-width: 640px; font-size: 15px; line-height: 1.7; color: #3a3a4e; margin-top: 20px; }
+    .cell .prose p { margin: 0 0 12px; }
+    .cell .prose blockquote { font-size: 20px; margin: 16px 0; padding: 12px 20px; border-left: 3px solid #c9a84c; background: rgba(201,168,76,0.06); border-radius: 0 8px 8px 0; font-family: var(--serif); font-style: italic; color: #4a4a5e; }
+    .cell .prose blockquote .attribution { display: block; margin-top: 6px; font-style: normal; color: #7a7a8e; }
+    .cell .prose ul { margin: 8px 0 12px 20px; padding: 0; }
+    .cell .prose li { margin: 0 0 4px; }
+    .cell .prose strong, .cell .prose b { font-weight: 700; color: #1a1a2e; }
+    .cell .prose em, .cell .prose i { font-style: italic; }
+    .cell .prose .highlight-box { margin: 24px 0; padding: 20px 24px; background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04); text-align: center; font-family: var(--serif); font-size: 17px; line-height: 1.8; color: #1a1a2e; }
   </style>
 </head>
 <body>
@@ -33,24 +43,64 @@
       }
     }
 
-    // Parse hackaviz.md — extract ```js fenced blocks with preceding # / ## headings
-    const src = await fetch("hackaviz.md").then(r => r.text())
+    // Parse hackaviz.md — extract sections with # headings, ```js code, and text
+    const src = await fetch("hackaviz.md?t=" + Date.now()).then(r => r.text())
     const cells = []
     let current = null, inCode = false
     for (const line of src.split("\n")) {
       if (line.startsWith("```js") && !inCode) {
-        if (!current) current = { h1: "", h2: "", code: "" }
+        if (!current) current = { h1: "", h2: "", textBefore: [], code: "", textAfter: [] }
         inCode = true
       } else if (line.startsWith("```") && inCode) {
         inCode = false
-        if (current) { cells.push(current); current = null }
       } else if (inCode) {
         current.code += line + "\n"
       } else if (line.startsWith("# ") && !line.startsWith("##")) {
-        current = { h1: line.slice(2), h2: "", code: "" }
+        if (current) cells.push(current)
+        current = { h1: line.slice(2), h2: "", textBefore: [], code: "", textAfter: [] }
       } else if (line.startsWith("## ") && current) {
         current.h2 = line.slice(3)
+      } else if (current) {
+        if (current.code) current.textAfter.push(line)
+        else current.textBefore.push(line)
       }
+    }
+    if (current) cells.push(current)
+
+    // Minimal markdown → HTML for prose text
+    function mdToHtml(lines) {
+      const text = lines.join("\n").trim()
+      if (!text) return ""
+      return text.split(/\n\n+/).map(block => {
+        block = block.trim()
+        if (!block) return ""
+        // Blockquote: lines starting with >
+        if (block.startsWith("> ")) {
+          const inner = block.replace(/^> ?/gm, "")
+          return `<blockquote>${inner}</blockquote>`
+        }
+        // Unordered list
+        if (/^[-•] /m.test(block)) {
+          const items = block.split("\n").filter(l => l.trim())
+          let html = "<ul>"
+          for (const item of items) {
+            const indent = item.match(/^\s*/)[0].length
+            const content = item.replace(/^\s*[-•o]\s+/, "")
+            html += indent >= 2 ? `<li style="margin-left:20px">${content}</li>` : `<li>${content}</li>`
+          }
+          return html + "</ul>"
+        }
+        // Highlight box (lines wrapped in **...**)
+        if (block.startsWith(":::")) {
+          const inner = block.replace(/^:::\s*/gm, "").replace(/:::$/gm, "").trim()
+          return `<div class="highlight-box">${inner.replace(/\n/g, "<br>")}</div>`
+        }
+        // Paragraph — handle inline **bold** and *italic*
+        let html = block.replace(/\n/g, "<br>")
+        html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        html = html.replace(/\*(.+?)\*/g, "<em>$1</em>")
+        return `<p>${html}</p>`
+      }).join("\n")
     }
 
     const root = document.getElementById("root")
@@ -59,15 +109,20 @@
       section.className = "cell"
       if (cell.h1) section.insertAdjacentHTML("beforeend", `<h1>${cell.h1}</h1>`)
       if (cell.h2) section.insertAdjacentHTML("beforeend", `<h2>${cell.h2}</h2>`)
+      if (cell.textBefore.length) section.insertAdjacentHTML("beforeend", `<div class="prose">${mdToHtml(cell.textBefore)}</div>`)
       root.appendChild(section)
 
-      try {
-        const fn = new Function("d3", "FileAttachment", `return (async () => { ${cell.code} })()`)
-        const result = await fn(d3, FileAttachment)
-        if (result instanceof Node) section.appendChild(result)
-      } catch (e) {
-        section.insertAdjacentHTML("beforeend", `<pre style="color:red">${e.message}\n${e.stack}</pre>`)
+      if (cell.code) {
+        try {
+          const fn = new Function("d3", "FileAttachment", `return (async () => { ${cell.code} })()`)
+          const result = await fn(d3, FileAttachment)
+          if (result instanceof Node) section.appendChild(result)
+        } catch (e) {
+          section.insertAdjacentHTML("beforeend", `<pre style="color:red">${e.message}\n${e.stack}</pre>`)
+        }
       }
+
+      if (cell.textAfter.length) section.insertAdjacentHTML("beforeend", `<div class="prose">${mdToHtml(cell.textAfter)}</div>`)
     }
   </script>
 </body>

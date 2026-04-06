@@ -1,4 +1,9 @@
-# Pays de la Zone Euro
+# L'éducation, ça coûte cher ?
+
+> « Nervos belli, infinitam pecuniam » — Cicéron
+> <div style="font-size: 14px">« Le nerf de la guerre, c’est l’argent »</div>
+
+# Les pays de la Zone Euro
 ## Date d'entrée dans la zone et PIB par habitant
 
 ```js
@@ -20,7 +25,7 @@
   }
 
   const css = `
-  .coins-map { font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; color: #1a1a2e; display: flex; flex-direction: column; align-items: center; }
+  .coins-map { font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; color: #1a1a2e; display: flex; flex-direction: column; }
   .coins-map .map { position: relative; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 20px rgba(0,0,0,0.06); }
   .coins-map svg { display: block; }
   .coins-map .country { fill: #f0f0f4; stroke: #d8d8e0; stroke-width: 0.5; transition: fill 0.2s; }
@@ -30,12 +35,10 @@
   .coins-map .coin:hover { transform: scale(2); box-shadow: 0 6px 24px rgba(201,168,76,0.5), 0 0 0 2px #c9a84c; z-index: 20; }
   .coins-map .coin img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .coins-map .tooltip { position: fixed; background: rgba(20,20,40,0.92); color: #fff; padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 100; white-space: nowrap; border: 1px solid rgba(201,168,76,0.3); }
-  .coins-map .legend { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 11px; color: #666; }
-  .coins-map .legend-bar { width: 200px; height: 10px; border-radius: 5px; border: 1px solid #ddd; }
+  .coins-map .legend { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #666; }
+  .coins-map .legend-bar { width: 140px; height: 8px; border-radius: 4px; border: 1px solid #ddd; }
   .coins-map .legend-label { font-weight: 600; color: #444; }
-  .coins-map .source { font-size: 11px; color: #999; margin-top: 10px; }
-  .coins-map .source a { color: #5566aa; text-decoration: none; }
-  .coins-map .source a:hover { text-decoration: underline; }
+  .coins-map .map-legend { position: absolute; top: 16px; left: 16px; z-index: 10; background: rgba(255,255,255,0.92); backdrop-filter: blur(6px); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
   `
 
   const width = 900, height = 700
@@ -155,41 +158,57 @@
     container.appendChild(div)
   })
 
-  const legend = document.createElement("div")
-  legend.className = "legend"
+  // Legend inside the map (top-left)
+  const mapLegend = document.createElement("div")
+  mapLegend.className = "map-legend"
   const years = allCoinData.map(d => d.year)
   const minY = Math.min(...years), maxY = Math.max(...years)
   const gradStops = d3.range(0, 1.01, 0.1).map(t => {
     const y = minY + t * (maxY - minY)
     return `${colorScale(y)} ${(t * 100).toFixed(0)}%`
   }).join(", ")
-  legend.innerHTML = `
-    <span class="legend-label">Année d'entrée dans la zone euro</span>
-    <span class="legend-label">${minY}</span>
-    <div class="legend-bar" style="background: linear-gradient(to right, ${gradStops})"></div>
-    <span class="legend-label">${maxY}</span>
+  mapLegend.innerHTML = `
+    <div class="legend"><span class="legend-label">Année d'entrée</span><span class="legend-label">${minY}</span><div class="legend-bar" style="background: linear-gradient(to right, ${gradStops})"></div><span class="legend-label">${maxY}</span></div>
+    <div class="legend"><span class="legend-label">PIB / hab.</span>${[20000, 40000, 60000].map(v => { const r = pibRadiusScale(v); const d = Math.round(r * 2); return `<span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:${d}px;height:${d}px;border-radius:50%;border:2px solid #c9a84c;background:#f5f0e0;flex-shrink:0;"></span><span style="font-size:11px;color:#666;">${(v/1000).toFixed(0)}k€</span></span>` }).join('')}</div>
   `
-  root.appendChild(legend)
-
-  // Size legend (PIB par habitant)
-  const sizeLegend = document.createElement("div")
-  sizeLegend.className = "legend"
-  const sizeSamples = [20000, 40000, 60000]
-  sizeLegend.innerHTML = `<span class="legend-label">PIB / habitant</span>` + sizeSamples.map(v => {
-    const r = pibRadiusScale(v)
-    const d = Math.round(r * 2)
-    return `<span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:${d}px;height:${d}px;border-radius:50%;border:2px solid #c9a84c;background:#f5f0e0;flex-shrink:0;"></span><span style="font-size:11px;color:#666;">${(v/1000).toFixed(0)}k€</span></span>`
-  }).join('')
-  root.appendChild(sizeLegend)
-
-  root.insertAdjacentHTML("beforeend", `<div class="source">Source pour le visuel des pièces : <a target="_blank" href="https://www.ecb.europa.eu/euro/coins/1euro/html/index.en.html">Banque Centrale Européenne</a></div>`)
+  container.appendChild(mapLegend)
 
   return root
 }
 ```
 
+On s'intéresse ici en particulier aux dépenses d'éducation : à la fois des dépenses de fonctionnement (salaires des personnels des collèges, lycées, supérieur, aides aux élèves et étudiants…) mais ce sont surtout des **dépenses d'investissement** dans les générations futures.
+
+- Comment évoluent-elles ? Au regard …
+- des résultats économiques,
+- de la démographie,
+- des compétences scolaires des élèves et
+- celles acquises par les adultes,
+- en comparaison avec les pays voisins de la zone euro (la comparaison sera relative au PIB du pays ou de son propre budget tant que possible)
+
+# La redistribution des €
+## L'éducation au sein du système productif français
+
+```js
+{
+  const wrap = document.createElement("div")
+  wrap.style.cssText = "display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;"
+  const img = document.createElement("img")
+  img.src = "schema.jpg"
+  img.alt = "Schéma du système de redistribution des €"
+  img.style.cssText = "flex:1;min-width:300px;max-width:65%;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);"
+  const legend = document.createElement("img")
+  legend.src = "schema-legend.jpg"
+  legend.alt = "Légende du schéma"
+  legend.style.cssText = "flex:0 0 auto;max-width:30%;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);"
+  wrap.appendChild(img)
+  wrap.appendChild(legend)
+  return wrap
+}
+```
+
 # Panorama de la Zone Euro
-## 16 indicateurs normalisés comparant éducation, finances publiques et démographie — survolez un drapeau pour les détails
+## Comment la France se positionne-t-elle par rapport à ses voisins ?
 
 ```js
 {
@@ -208,7 +227,9 @@
   .hz .category-row { height: 28px; background: #f0f1f6; border-top: 2px solid #d8dae5; }
   .hz .category-row:hover { background: #f0f1f6; }
   .hz .category-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #7a7a8e; padding-left: 20px; line-height: 28px; flex: 1; }
-  .hz .category-years { font-size: 10px; font-weight: 500; color: #aaa; padding-right: 8px; line-height: 28px; }
+  .hz .category-years { font-size: 10px; font-weight: 500; color: #aaa; padding-right: 8px; line-height: 28px; display: flex; align-items: center; gap: 6px; }
+  .hz .category-country { font-weight: 700; color: #44b; font-size: 11px; opacity: 0; transition: opacity 0.15s; }
+  .hz .chart.has-highlight .category-country { opacity: 1; }
   .hz .row-num { width: 28px; min-width: 28px; font-size: 11px; font-weight: 600; color: #bbb; text-align: center; }
   .hz .label { width: 182px; min-width: 182px; font-size: 13px; font-weight: 500; text-align: right; padding-right: 20px; color: #3a3a4e; white-space: nowrap; }
   .hz .track { flex: 1; position: relative; height: 50px; border-left: 1px solid #e8e8ee; padding: 0 18px; }
@@ -475,7 +496,7 @@
       const sep = document.createElement("div")
       sep.className = "row category-row"
       const yr = catYearRange[cat]
-      sep.innerHTML = `<div class="category-label">${cat}</div><div class="category-years">${yr ? yr.min + ' – ' + yr.max : ''}</div>`
+      sep.innerHTML = `<div class="category-label">${cat}</div><div class="category-years"><span class="category-country" data-cat></span>${yr ? yr.min + ' – ' + yr.max : ''}</div>`
       chart.appendChild(sep)
       lastCat = cat
     }
@@ -592,6 +613,12 @@
       const ri = +el.dataset.row
       el.innerHTML = waterfallSVG(getYearSeries(labels[ri], activeCi))
     })
+    // Update country name in category rows
+    chart.querySelectorAll(".category-country[data-cat]").forEach(el => {
+      const activeC = countries.find(c => c.code === activeCode)
+      el.textContent = activeC ? activeC.name : ''
+      el.style.color = colors[activeCode] || '#44b'
+    })
     const info = chart.querySelector(".chart-header-info")
     if (!info) return
     const activeC = countries.find(c => c.code === activeCode)
@@ -603,8 +630,15 @@
   chart.querySelectorAll(".dot img").forEach(img => img.addEventListener("load", scheduleDrawLines, { once: true }))
   window.addEventListener("resize", drawLines)
 
-  root.insertAdjacentHTML("beforeend", `<div class="source">Sources : Eurostat, Mankieur 2026</div>`)
-
   return root
 }
 ```
+
+Les pays sont positionnés les uns par rapport aux autres ce qui permet de voir leur rang au sein de l'ensemble mais aussi les distances par rapport aux autres pays sur chaque indicateur. La première et la dernière année disponible ont été utilisées pour chacun des indicateurs.
+
+On parle de baisse démographique pour justifier la baisse des moyens alloués à l'enseignement en France. Pourtant, la baisse du nombre de jeunes en France s'est amorcée plutôt récemment en 2014 seulement, alors que les dépenses d'enseignements, elles, augmentent bien plus lentement que les dépenses totales.
+
+# L'éducation, c'est un investissement
+## … à long terme, mais sans doute très rentable
+
+> « C'est la meilleure protection contre le chômage et le principal déterminant des niveaux de revenus » — Julien Grenet
