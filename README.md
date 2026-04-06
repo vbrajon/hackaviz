@@ -2,6 +2,8 @@
 
 Règlement: https://toulouse-dataviz.fr/hackaviz/reglement/
 
+Github: https://github.com/Toulouse-Dataviz/hackaviz-2026
+
 Viz 1: Carte
 Viz 2: Rang sur plusieurs catégories
 Viz 3: 

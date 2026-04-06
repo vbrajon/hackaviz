@@ -39,7 +39,6 @@
   `
 
   const width = 900, height = 700
-  const coinR = 19
 
   const imgBase = "https://www.ecb.europa.eu/euro/coins/common/shared/img/"
 
@@ -77,9 +76,8 @@
   const euroIds = new Set(allCoinData.map(d => d.id))
   const yearById = Object.fromEntries(allCoinData.map(d => [d.id, d.year]))
 
-  // Scale coin size ±25% based on PIB
-  const pibValues = coinData.map(d => d.pib)
-  const pibScale = d3.scaleLinear().domain([Math.min(...pibValues), Math.max(...pibValues)]).range([0.75, 1.25])
+  // Scale coin size by PIB (sqrt scale: 10k€ → 10px radius, 100k€ → 50px)
+  const pibRadiusScale = d3.scaleSqrt().domain([10000, 100000]).range([10, 50])
 
   const colorScale = d3.scaleSequential(d3.interpolateBlues).domain([2026, 1998])
 
@@ -113,8 +111,8 @@
 
   const nodes = coinData.map(d => {
     const [tx, ty] = projection([d.lon, d.lat])
-    const baseR = d.micro ? coinR - 4 : coinR
-    return { ...d, x: tx, y: ty, targetX: tx, targetY: ty, r: baseR * pibScale(d.pib) }
+    const r = d.micro ? pibRadiusScale(d.pib) * 0.7 : pibRadiusScale(d.pib)
+    return { ...d, x: tx, y: ty, targetX: tx, targetY: ty, r }
   })
 
   const sim = d3.forceSimulation(nodes)
@@ -166,12 +164,23 @@
     return `${colorScale(y)} ${(t * 100).toFixed(0)}%`
   }).join(", ")
   legend.innerHTML = `
+    <span class="legend-label">Année d'entrée dans l'euro</span>
     <span class="legend-label">${minY}</span>
     <div class="legend-bar" style="background: linear-gradient(to right, ${gradStops})"></div>
     <span class="legend-label">${maxY}</span>
-    <span style="margin-left:4px">Année d'entrée dans l'euro</span>
   `
   root.appendChild(legend)
+
+  // Size legend (PIB par habitant)
+  const sizeLegend = document.createElement("div")
+  sizeLegend.className = "legend"
+  const sizeSamples = [20000, 40000, 60000]
+  sizeLegend.innerHTML = `<span class="legend-label">PIB / habitant</span>` + sizeSamples.map(v => {
+    const r = pibRadiusScale(v)
+    const d = Math.round(r * 2)
+    return `<span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:${d}px;height:${d}px;border-radius:50%;border:2px solid #c9a84c;background:#f5f0e0;flex-shrink:0;"></span><span style="font-size:11px;color:#666;">${(v/1000).toFixed(0)}k€</span></span>`
+  }).join('')
+  root.appendChild(sizeLegend)
 
   root.insertAdjacentHTML("beforeend", `<div class="source">Source : <a target="_blank" href="https://www.ecb.europa.eu/euro/coins/1euro/html/index.en.html">Banque Centrale Européenne</a></div>`)
 
