@@ -311,19 +311,13 @@
   const allYears = [...new Set(labels.flatMap(l => Object.keys(rawMap[l]).map(Number)))].sort((a, b) => a - b)
 
   function getLatestValues(label) {
-    const entry = dataMap[label]
-    if (!entry) return []
-    const years = Object.keys(entry).map(Number).sort()
-    if (!years.length) return []
-    const last = entry[years[years.length - 1]]
-    return last.map((v, ci) => {
-      if (v != null) return v
-      for (let yi = years.length - 2; yi >= 0; yi--) {
-        const prev = entry[years[yi]][ci]
-        if (prev != null) return prev
-      }
-      return null
-    })
+    const raw = getRawLatestValues(label)
+    const inv = inverse[label]
+    const nonNull = raw.filter(v => v != null)
+    if (!nonNull.length) return raw.map(() => null)
+    const min = Math.min(...nonNull), max = Math.max(...nonNull)
+    const range = max - min || 1
+    return raw.map(v => v == null ? null : inv ? +(1 - (v - min) / range).toFixed(3) : +((v - min) / range).toFixed(3))
   }
 
   function getLatestFallbackFlags(label) {
