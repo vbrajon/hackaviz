@@ -5,10 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Hackaviz – Zone Euro</title>
   <style>
-    body { margin: 0; padding: 20px 40px; background: #f9f9fb; font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+    :root {
+      --serif: "Source Serif Pro", "Iowan Old Style", "Apple Garamond", "Palatino Linotype", "Times New Roman", "Droid Serif", Times, serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+      --sans-serif: "Inter", -apple-system, BlinkMacSystemFont, "avenir next", avenir, helvetica, "helvetica neue", ubuntu, roboto, noto, "segoe ui", arial, sans-serif;
+      --monospace: "Spline Sans Mono", Menlo, Consolas, monospace;
+    }
+    body { margin: 0; padding: 20px 40px; background: #f9f9fb; font-family: var(--sans-serif); }
     .cell { margin: 0 auto 40px; }
-    h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 4px; color: #1a1a2e; }
-    h2 { font-size: 14px; font-weight: 400; color: #7a7a8e; margin: 0 0 20px; }
+    h1 { font-size: 28px; font-family: var(--serif); font-weight: 800; letter-spacing: -0.5px; margin: 0 0 4px; color: #1a1a2e; max-width: 640px; 
+    text-wrap-style: balance; }
+    h2 { font-size: 20px; font-family: var(--serif); font-weight: 400; font-style: italic; color: #7a7a8e; margin: 0 0 20px; max-width: 640px; 
+    text-wrap-style: balance; }
   </style>
 </head>
 <body>

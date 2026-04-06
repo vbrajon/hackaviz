@@ -190,7 +190,6 @@
 
 # Panorama de la Zone Euro
 ## 16 indicateurs normalisés comparant éducation, finances publiques et démographie — survolez un drapeau pour les détails
-<style>h2 { font-style: italic;font-weight: normal;font-size: 20px; }</style>
 
 ```js
 {
@@ -270,16 +269,16 @@
   function parseCSV(text) {
     const lines = text.trim().split("\n").map(l => l.split(","))
     if (lines.length < 2) return null
-    const countryCodes = lines[0].slice(4, -1) // exclude last "Inverse" header
+    const countryCodes = lines[0].slice(5) // skip Année,Catégorie,Variable,Unité,Inverse
     const raw = {}, labels = [], categories = {}, units = {}, inverse = {}
     for (let i = 1; i < lines.length; i++) {
       const year = parseInt(lines[i][0])
       const cat = (lines[i][1] || "").trim()
       const label = (lines[i][2] || "").trim()
       const unit = (lines[i][3] || "").trim()
-      const inv = (lines[i][lines[i].length - 1] || "").trim() === "1"
+      const inv = (lines[i][4] || "").trim() === "1"
       if (!label || isNaN(year)) continue
-      const values = lines[i].slice(4, -1).map(v => { const n = parseFloat(v); return isNaN(n) ? null : n })
+      const values = lines[i].slice(5).map(v => { const n = parseFloat(v); return isNaN(n) ? null : n })
       if (!raw[label]) { raw[label] = {}; labels.push(label); categories[label] = cat; units[label] = unit; inverse[label] = inv }
       raw[label][year] = values
     }
@@ -292,12 +291,12 @@
     }
     const dataMap = {}
     for (const label of labels) {
+      const all = Object.values(raw[label]).flat().filter(v => v != null)
+      const min = Math.min(...all), max = Math.max(...all)
+      const range = max - min || 1
       const inv = inverse[label]
       dataMap[label] = {}
       for (const [year, values] of Object.entries(raw[label])) {
-        const yearVals = values.filter(v => v != null)
-        const min = Math.min(...yearVals), max = Math.max(...yearVals)
-        const range = max - min || 1
         dataMap[label][year] = values.map(v => v == null ? null : inv ? +(1 - (v - min) / range).toFixed(3) : +((v - min) / range).toFixed(3))
       }
     }

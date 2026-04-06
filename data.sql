@@ -49,8 +49,9 @@ CREATE TEMP TABLE depenses_euro_filtre AS
 SELECT
   "Année", Cde_Pays,
   sum(Montant) AS Depenses_totales,
+  sum(CASE WHEN "Cde_Dépense" = 'GF09' THEN Montant ELSE 0 END) AS Depenses_educ_montant,
   sum(CASE WHEN "Cde_Dépense" = 'GF09' THEN Montant ELSE 0 END)
-    / nullif(sum(Montant), 0) AS Depenses_educ
+    / nullif(sum(Montant), 0) AS Depenses_educ_part
 FROM hackaviz('depenses_euro')
 WHERE "Cde_Dépense" IN ('GF01','GF02','GF03','GF04','GF05','GF06','GF07','GF08','GF09','GF10')
 GROUP BY "Année", Cde_Pays;
@@ -85,9 +86,9 @@ SELECT
   i."Année",
   -- Économie
   p.Montant_PIB / pop.Total_Pop * 1000        AS PIB_Par_Hab,
-  d.Depenses_totales / p.Montant_PIB          AS Depenses_PIB,
-  d.Depenses_educ / p.Montant_PIB             AS "Depenses_ens._PIB",
-  d.Depenses_educ / d.Depenses_totales        AS Part_Depenses_Educ,
+  d.Depenses_totales * 1000 / p.Montant_PIB          AS Depenses_PIB,
+  d.Depenses_educ_montant * 1000 / p.Montant_PIB      AS "Depenses_ens._PIB",
+  d.Depenses_educ_part                                AS Part_Depenses_Educ,
   pop.part_population_eu                       AS Part_Pop,
   pa.Part_Moins_15ans / 100                    AS Part_Jeunes,
   i.Montant_Impots / p.Montant_PIB            AS Tx_Prelevements_Oblig,
