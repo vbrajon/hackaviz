@@ -130,23 +130,23 @@ WHERE Valeur IS NOT NULL;
 
 -- Métadonnées indicateurs
 CREATE TEMP TABLE meta AS
-SELECT * FROM (VALUES
-  ('Part_Pop',                            'Démographie',  'Part de la population',      '%',      '0'),
-  ('Part_Jeunes',                         'Démographie',  'Part des jeunes',            '%',      '0'),
-  ('PIB_Par_Hab',                         'Démographie',  'PIB par habitant',           'USD',    '0'),
+SELECT *, row_number() OVER () AS Ordre FROM (VALUES
+  ('Part_Pop',                            'Démographie',  'Part de la population',      '%',      NULL),
+  ('Part_Jeunes',                         'Démographie',  'Part des jeunes',            '%',      NULL),
+  ('PIB_Par_Hab',                         'Démographie',  'PIB par habitant',           'USD',    NULL),
   ('Jeunes_Sans_Emploi',                  'Démographie',  'Jeunes sans emploi',         '%',      '1'),
   ('Depenses_PIB',                        'Finances',     'Dépenses pub. / PIB',        '% PIB',  '1'),
   ('Depenses_ens._PIB',                   'Finances',     'Dépenses ens. / PIB',        '% PIB',  '1'),
-  ('Part_Depenses_Educ',                  'Finances',     'Part dép. éducation',        '%',      '0'),
-  ('Tx_Prelevements_Oblig',               'Finances',     'Taux prélèv. obligatoires',  '% PIB',  '0'),
+  ('Part_Depenses_Educ',                  'Finances',     'Part dép. éducation',        '%',      NULL),
+  ('Tx_Prelevements_Oblig',               'Finances',     'Taux prélèv. obligatoires',  '% PIB',  NULL),
   ('Dette_PIB',                           'Finances',     'Dette / PIB',                '% PIB',  '1'),
   ('Adultes_FaiblesCompetences_calcul',   'Adultes',      'Faibles comp. en calcul',    '%',      '1'),
-  ('Adultes_Competences_calcul',          'Adultes',      'Compétences en calcul',      'score',  '0'),
-  ('Adultes_Competences_lecture_ecriture', 'Adultes',      'Compétences en lecture',     'score',  '0'),
+  ('Adultes_Competences_calcul',          'Adultes',      'Compétences en calcul',      'score',  NULL),
+  ('Adultes_Competences_lecture_ecriture', 'Adultes',      'Compétences en lecture',     'score',  NULL),
   ('Adultes_Part_Faible_Comp_3PISA',      'Adultes',      'Faible comp. PISA',          '%',      '1'),
-  ('Eleves_Comp_Ecrit',                   'Élèves',       'Score en lecture',           'points', '0'),
-  ('Eleves_Score_Maths',                  'Élèves',       'Score en maths',             'points', '0'),
-  ('Eleves_Score_Sciences',               'Élèves',       'Score en sciences',          'points', '0')
+  ('Eleves_Comp_Ecrit',                   'Élèves',       'Score en lecture',           'points', NULL),
+  ('Eleves_Score_Maths',                  'Élèves',       'Score en maths',             'points', NULL),
+  ('Eleves_Score_Sciences',               'Élèves',       'Score en sciences',          'points', NULL)
 ) AS t(Cle, "Catégorie", Variable, "Unité", Inverse);
 
 CREATE TEMP TABLE table_historique AS
@@ -165,7 +165,7 @@ SELECT
   h.IRL, h.ITA, h.LTU, h.LUX, h.LVA, h.NLD, h.PRT, h.SVK
 FROM table_historique h
 LEFT JOIN meta m ON h.Variable = m.Cle
-ORDER BY m.Variable, h."Année";
+ORDER BY m.Ordre, h."Année";
 
 -- ============================================================
 -- 5. CLI only — export to CSV (do NOT paste this in the playground)
@@ -178,5 +178,5 @@ COPY (
     h.IRL, h.ITA, h.LTU, h.LUX, h.LVA, h.NLD, h.PRT, h.SVK
   FROM table_historique h
   LEFT JOIN meta m ON h.Variable = m.Cle
-  ORDER BY m.Variable, h."Année"
+  ORDER BY m.Ordre, h."Année"
 ) TO 'data.csv' (HEADER, DELIMITER ',');

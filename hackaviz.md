@@ -15,7 +15,7 @@
   for (const row of pibRows) {
     csvCodes.forEach((code, i) => {
       const v = parseFloat(row[4 + i])
-      if (!isNaN(v)) latestPib[codeToId[code.trim()]] = v
+      if (!isNaN(v)) latestPib[codeToId[code.trim()]] = Math.round(v * 1000)
     })
   }
 
@@ -292,12 +292,12 @@
     }
     const dataMap = {}
     for (const label of labels) {
-      const all = Object.values(raw[label]).flat().filter(v => v != null)
-      const min = Math.min(...all), max = Math.max(...all)
-      const range = max - min || 1
       const inv = inverse[label]
       dataMap[label] = {}
       for (const [year, values] of Object.entries(raw[label])) {
+        const yearVals = values.filter(v => v != null)
+        const min = Math.min(...yearVals), max = Math.max(...yearVals)
+        const range = max - min || 1
         dataMap[label][year] = values.map(v => v == null ? null : inv ? +(1 - (v - min) / range).toFixed(3) : +((v - min) / range).toFixed(3))
       }
     }
