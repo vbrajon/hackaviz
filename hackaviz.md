@@ -15,7 +15,7 @@
   for (const row of pibRows) {
     csvCodes.forEach((code, i) => {
       const v = parseFloat(row[4 + i])
-      if (!isNaN(v)) latestPib[codeToId[code.trim()]] = Math.round(v * 1000)
+      if (!isNaN(v)) latestPib[codeToId[code.trim()]] = Math.round(v)
     })
   }
 
@@ -164,7 +164,7 @@
     return `${colorScale(y)} ${(t * 100).toFixed(0)}%`
   }).join(", ")
   legend.innerHTML = `
-    <span class="legend-label">Année d'entrée dans l'euro</span>
+    <span class="legend-label">Année d'entrée dans la zone euro</span>
     <span class="legend-label">${minY}</span>
     <div class="legend-bar" style="background: linear-gradient(to right, ${gradStops})"></div>
     <span class="legend-label">${maxY}</span>
@@ -182,7 +182,7 @@
   }).join('')
   root.appendChild(sizeLegend)
 
-  root.insertAdjacentHTML("beforeend", `<div class="source">Source : <a target="_blank" href="https://www.ecb.europa.eu/euro/coins/1euro/html/index.en.html">Banque Centrale Européenne</a></div>`)
+  root.insertAdjacentHTML("beforeend", `<div class="source">Source pour le visuel des pièces : <a target="_blank" href="https://www.ecb.europa.eu/euro/coins/1euro/html/index.en.html">Banque Centrale Européenne</a></div>`)
 
   return root
 }
@@ -207,8 +207,10 @@
   .hz .row.highlighted { background: #eef1f8; box-shadow: inset 4px 0 0 var(--hl-color, #44b); }
   .hz .category-row { height: 28px; background: #f0f1f6; border-top: 2px solid #d8dae5; }
   .hz .category-row:hover { background: #f0f1f6; }
-  .hz .category-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #7a7a8e; padding-left: 20px; line-height: 28px; }
-  .hz .label { width: 210px; min-width: 210px; font-size: 13px; font-weight: 500; text-align: right; padding-right: 20px; color: #3a3a4e; white-space: nowrap; }
+  .hz .category-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #7a7a8e; padding-left: 20px; line-height: 28px; flex: 1; }
+  .hz .category-years { font-size: 10px; font-weight: 500; color: #aaa; padding-right: 8px; line-height: 28px; }
+  .hz .row-num { width: 28px; min-width: 28px; font-size: 11px; font-weight: 600; color: #bbb; text-align: center; }
+  .hz .label { width: 182px; min-width: 182px; font-size: 13px; font-weight: 500; text-align: right; padding-right: 20px; color: #3a3a4e; white-space: nowrap; }
   .hz .track { flex: 1; position: relative; height: 50px; border-left: 1px solid #e8e8ee; padding: 0 18px; }
   .hz .track-inner { position: relative; width: calc(100% - 20px); height: 100%; }
   .hz .track::before { content: ''; position: absolute; top: 0; bottom: 0; left: calc(18px + (100% - 56px) * 0.25); width: 1px; background: #ecedf2; pointer-events: none; }
@@ -229,7 +231,7 @@
   .hz .dot:hover, .hz .dot.highlight { transform: translate(-50%, -50%) scale(1.25); box-shadow: 0 3px 12px rgba(0,0,0,0.18); z-index: 10; opacity: 1 !important; filter: none; }
   .hz .chart-header { display: flex; align-items: center; height: 38px; background: #f4f5f9; border-bottom: 1px solid #e8e8ee; }
   .hz .chart-header:hover { background: #f4f5f9; }
-  .hz .chart-header .label { width: 210px; min-width: 210px; }
+  .hz .chart-header .label { width: 182px; min-width: 182px; }
   .hz .chart-header .spacer { flex: 1; border-left: 1px solid #e8e8ee; }
   .hz .chart-header .rank { opacity: 1; border: none; font-size: 11px; color: #aaa; line-height: normal; display: flex; align-items: center; justify-content: center; }
   .hz .chart-header-info { display: flex; align-items: center; border-left: 1px solid #e8e8ee; }
@@ -282,16 +284,19 @@
       if (!raw[label]) { raw[label] = {}; labels.push(label); categories[label] = cat; units[label] = unit; inverse[label] = inv }
       raw[label][year] = values
     }
-    // Compute EU average and append as last column
-    for (const label of labels) {
-      for (const [year, values] of Object.entries(raw[label])) {
-        const nonNull = values.filter(v => v != null)
-        raw[label][year] = [...values, nonNull.length ? nonNull.reduce((a, b) => a + b, 0) / nonNull.length : null]
+    // Append EU column if not already in CSV (fallback — prefer SQL computation)
+    if (!countryCodes.includes('EU')) {
+      for (const label of labels) {
+        for (const [year, values] of Object.entries(raw[label])) {
+          const nonNull = values.filter(v => v != null)
+          raw[label][year] = [...values, nonNull.length ? nonNull.reduce((a, b) => a + b, 0) / nonNull.length : null]
+        }
       }
     }
     const dataMap = {}
+    const euIdx = countryCodes.indexOf('EU')
     for (const label of labels) {
-      const all = Object.values(raw[label]).flat().filter(v => v != null)
+      const all = Object.values(raw[label]).flatMap(vs => vs.filter((v, i) => v != null && i !== euIdx))
       const min = Math.min(...all), max = Math.max(...all)
       const range = max - min || 1
       const inv = inverse[label]
@@ -313,7 +318,8 @@
   function getLatestValues(label) {
     const raw = getRawLatestValues(label)
     const inv = inverse[label]
-    const nonNull = raw.filter(v => v != null)
+    const euIdx = countries.findIndex(c => c.code === 'EU')
+    const nonNull = raw.filter((v, i) => v != null && i !== euIdx)
     if (!nonNull.length) return raw.map(() => null)
     const min = Math.min(...nonNull), max = Math.max(...nonNull)
     const range = max - min || 1
@@ -361,6 +367,18 @@
     }
     else str = "0"
     return `<span class="num">${str}</span><span class="unit">${unit}</span>`
+  }
+
+  function formatPopValue(pop, share) {
+    if (pop == null && share == null) return "–"
+    const parts = []
+    if (pop != null) {
+      const M = pop / 1e6
+      if (M >= 1) parts.push(`${M.toFixed(1)}M`)
+      else parts.push(`${(pop / 1e3).toFixed(0)}k`)
+    }
+    if (share != null) parts.push(`(${(share * 100).toFixed(1)}%)`)
+    return `<span class="num">${parts.join(' ')}</span>`
   }
 
   function getYearSeries(label, ci) {
@@ -437,23 +455,37 @@
   hdr.innerHTML = `<div class="label"></div><div class="spacer"></div><div class="rank">Rang</div><div class="value">Valeur</div><div class="chart-header-info" id="chart-header-info"><div class="col-label muted"></div></div>`
   chart.appendChild(hdr)
 
+  // Compute year range per category
+  const catYearRange = {}
+  for (const label of labels) {
+    const cat = categories[label]
+    const years = Object.keys(rawMap[label]).map(Number)
+    if (!years.length) continue
+    const mn = Math.min(...years), mx = Math.max(...years)
+    if (!catYearRange[cat]) catYearRange[cat] = { min: mn, max: mx }
+    else { catYearRange[cat].min = Math.min(catYearRange[cat].min, mn); catYearRange[cat].max = Math.max(catYearRange[cat].max, mx) }
+  }
+
   // Rows
-  let lastCat = null
+  let lastCat = null, rowNum = 0
   labels.forEach((label, ri) => {
+    if (label === "Population") return // hidden — used to enrich Part de la population display
     const cat = categories[label]
     if (cat !== lastCat) {
       const sep = document.createElement("div")
       sep.className = "row category-row"
-      sep.innerHTML = `<div class="category-label">${cat}</div>`
+      const yr = catYearRange[cat]
+      sep.innerHTML = `<div class="category-label">${cat}</div><div class="category-years">${yr ? yr.min + ' – ' + yr.max : ''}</div>`
       chart.appendChild(sep)
       lastCat = cat
     }
+    rowNum++
     const values = getLatestValues(label)
     const fallbackFlags = getLatestFallbackFlags(label)
     const row = document.createElement("div")
     row.className = "row"
     const inv = inverse[label] ? ' <span style="color:#cf3b3b;font-size:10px" title="Inversé : moins = mieux">◄</span>' : ''
-    row.innerHTML = `<div class="label">${label}${inv}</div><div class="track"><div class="track-inner"></div><div class="grid-75"></div><div class="grid-100"></div></div><div class="rank" data-row="${ri}"></div><div class="value" data-row="${ri}"></div><div class="sparkline" data-row="${ri}"></div>`
+    row.innerHTML = `<div class="row-num">${rowNum}</div><div class="label">${label}${inv}</div><div class="track"><div class="track-inner"></div><div class="grid-75"></div><div class="grid-100"></div></div><div class="rank" data-row="${ri}"></div><div class="value" data-row="${ri}"></div><div class="sparkline" data-row="${ri}"></div>`
     chart.appendChild(row)
 
     const trackInner = row.querySelector(".track-inner")
@@ -488,8 +520,8 @@
     _linesSvg.setAttribute("width", r.width)
     _linesSvg.setAttribute("height", r.height)
     countries.forEach(c => {
-      if (c.code === "EU") return
-      const cd = _dots.filter(d => d.code === c.code).sort((a, b) => a.row - b.row)
+      let cd = _dots.filter(d => d.code === c.code).sort((a, b) => a.row - b.row)
+      if (c.code === 'EU' && cd.length > 1) cd = cd.slice(1) // EU line starts from 2nd row
       if (cd.length < 2) return
       for (let i = 0; i < cd.length - 1; i++) {
         const r1 = cd[i].el.getBoundingClientRect()
@@ -500,9 +532,9 @@
         line.setAttribute("x2", r2.left + r2.width / 2 - r.left)
         line.setAttribute("y2", r2.top + r2.height / 2 - r.top)
         line.setAttribute("stroke", colors[c.code])
-        line.setAttribute("stroke-width", highlightedCountry === c.code ? "2" : "1")
-        line.setAttribute("stroke-dasharray", "3,3")
-        line.setAttribute("opacity", highlightedCountry === c.code ? "0.7" : highlightedCountry ? "0.03" : "0.12")
+        line.setAttribute("stroke-width", c.code === 'EU' ? "2.5" : highlightedCountry === c.code ? "2" : "1")
+        if (c.code !== 'EU') line.setAttribute("stroke-dasharray", "3,3")
+        line.setAttribute("opacity", c.code === 'EU' ? (highlightedCountry && highlightedCountry !== 'EU' ? "0.15" : "0.6") : highlightedCountry === c.code ? "0.7" : highlightedCountry ? "0.03" : "0.12")
         line.dataset.code = c.code
         _linesSvg.appendChild(line)
       }
@@ -535,15 +567,26 @@
     chart.querySelectorAll(".rank[data-row]").forEach(el => {
       const ri = +el.dataset.row
       const values = getLatestValues(labels[ri])
-      const sorted = values.map((v, i) => ({ v, i })).filter(s => s.v != null).sort((a, b) => b.v - a.v)
+      const euIdx = countries.findIndex(c => c.code === 'EU')
+      const sorted = values.map((v, i) => ({ v, i })).filter(s => s.v != null && s.i !== euIdx).sort((a, b) => b.v - a.v)
       const rank = sorted.findIndex(s => s.i === activeCi) + 1
       el.innerHTML = rank > 0 ? (rank <= 3 ? medals[rank - 1] : `<span style="font-size:11px">${rank}<sup>e</sup></span>`) : "–"
     })
     chart.querySelectorAll(".value[data-row]").forEach(el => {
       const ri = +el.dataset.row
-      const raw = getRawLatestValues(labels[ri])
-      const v = raw[activeCi]
-      el.innerHTML = formatValue(v, units[labels[ri]])
+      const rawVals = getRawLatestValues(labels[ri])
+      const v = rawVals[activeCi]
+      if (labels[ri] === "Population & Part" && rawMap["Population"]) {
+        const popVals = getRawLatestValues("Population")
+        el.innerHTML = formatPopValue(popVals[activeCi], v)
+      } else if (labels[ri] === "Part des jeunes" && rawMap["Population"]) {
+        const popVals = getRawLatestValues("Population")
+        const pop = popVals[activeCi]
+        const jeunesPop = (pop != null && v != null) ? pop * v : null
+        el.innerHTML = formatPopValue(jeunesPop, v)
+      } else {
+        el.innerHTML = formatValue(v, units[labels[ri]])
+      }
     })
     chart.querySelectorAll(".sparkline[data-row]").forEach(el => {
       const ri = +el.dataset.row
